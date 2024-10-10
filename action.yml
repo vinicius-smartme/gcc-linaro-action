@@ -1,0 +1,22 @@
+name: Setup GCC Linaro Toolchain
+description: This action sets up the GCC Linaro toolchain on Windows containers.
+author: vinicius-smartme
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download and Install Linaro toolchain to PATH
+      shell: pwsh
+      run: |
+        curl -L -v https://releases.linaro.org/components/toolchain/binaries/latest-5/arm-linux-gnueabihf/gcc-linaro-5.5.0-2017.10-i686-mingw32_arm-linux-gnueabihf.tar.xz --output gcc-linaro.tar.xz
+        cd
+        Expand-Archive -Path ${{ github.action_path }}/gcc-linaro-5.5.0-2017.10-i686-mingw32_arm-linux-gnueabihf.tar.xz -DestinationPath ${{ github.action_path }}/gcc-linaro
+        $env:PATH += ";${{ github.action_path }}/gcc_linaro/bin"
+        Write-Host "::set-output name=linaro_path::${{ github.action_path }}/gcc_linaro/bin"
+        echo "$(arm-linux-gnueabihf-gcc --version)"
+        echo "GCC Linaro toolchain installed and added to PATH."
+
+branding:
+  icon: terminal
+  color: blue
+

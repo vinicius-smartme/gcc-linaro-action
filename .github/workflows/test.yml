@@ -1,0 +1,35 @@
+name: Test Action
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run the custom GCC Linaro Setup Action
+        uses: ./
+
+      - name: Verify GCC
+        run: |
+          arm-linux-gnueabihf-gcc --version
+
+      - name: Run a sample build command
+        run: |
+          # Creates a hello.c file
+          echo '#include <stdio.h>' > hello.c
+          echo 'int main() {' >> hello.c
+          echo '    printf("Hello, ARM world!\\n");' >> hello.c
+          echo '    return 0;' >> hello.c
+          echo '}' >> hello.c
+          arm-linux-gnueabihf-gcc -o hello hello.c
+
