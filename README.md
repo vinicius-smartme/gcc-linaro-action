@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install the GCC Linaro toolchain
-        uses: vinicius-smartme/gcc-linaro-action@main
+        uses: vinicius-smartme/gcc-linaro-action@v1
         with:
           version: '5'
           toolchain: 'arm-linux-gnueabihf'
