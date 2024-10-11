@@ -2,19 +2,88 @@ name: Setup GCC Linaro Toolchain
 description: This action sets up the GCC Linaro toolchain on Windows containers.
 author: vinicius-smartme
 
+inputs:
+  version:
+    description: 'Linaro GCC version (4, 5, 6, or 7).'
+    required: true
+    default: '7'
+    options:
+      - 4
+      - 5
+      - 6
+      - 7
+    type: choice
+  toolchain:
+    description: 'Target ARM toolchain.'
+    required: true
+    options:
+      - aarch64-elf
+      - aarch64-linux-gnu
+      - aarch64_be-elf
+      - aarch64_be-linux-gnu
+      - arm-eabi
+      - arm-linux-gnueabi
+      - arm-linux-gnueabihf
+      - armeb-eabi
+      - armeb-linux-gnueabi
+      - armeb-linux-gnueabihf
+      - armv8l-linux-gnueabihf
+    type: choice
+
 runs:
   using: "composite"
   steps:
-    - name: Download and Install Linaro toolchain to PATH
-      shell: pwsh
+    - name: Setup the Environment
+      shell: bash
       run: |
-        curl -L -v https://releases.linaro.org/components/toolchain/binaries/latest-5/arm-linux-gnueabihf/gcc-linaro-5.5.0-2017.10-i686-mingw32_arm-linux-gnueabihf.tar.xz --output gcc-linaro.tar.xz
-        cd
-        Expand-Archive -Path ${{ github.action_path }}/gcc-linaro-5.5.0-2017.10-i686-mingw32_arm-linux-gnueabihf.tar.xz -DestinationPath ${{ github.action_path }}/gcc-linaro
-        $env:PATH += ";${{ github.action_path }}/gcc_linaro/bin"
-        Write-Host "::set-output name=linaro_path::${{ github.action_path }}/gcc_linaro/bin"
-        echo "$(arm-linux-gnueabihf-gcc --version)"
-        echo "GCC Linaro toolchain installed and added to PATH."
+        choco install 7zip -y
+        choco install wget -y
+
+    - name: Download and Install Linaro toolchain to PATH
+      shell: bash
+      run: |
+        case "${{ inputs.version }}" in
+          "7") DATE="2019.12"; VERSION_PART=7.5.0;;
+          "6") DATE="2018.12"; VERSION_PART=6.5.0;;
+          "5") DATE="2017.10"; VERSION_PART=5.5.0;;
+          "4") DATE="2017.01"; VERSION_PART=4.9.4;;
+          *) echo "Date not found for version ${{ inputs.version }}"; exit 1;;
+        esac
+        
+        TOOLCHAIN_LOWER=$(echo ${{ inputs.toolchain }} | tr '[:upper:]' '[:lower:]')
+        TOOLCHAIN="gcc-linaro-${VERSION_PART}-${DATE}-i686-mingw32_${TOOLCHAIN_LOWER}"
+        URL="https://releases.linaro.org/components/toolchain/binaries/latest-${{ inputs.version }}/${TOOLCHAIN_LOWER}/${TOOLCHAIN}.tar.xz"
+
+        OUTPUT="gcc-linaro"
+        MAX_RETRIES=5
+        for i in $(seq 1 $MAX_RETRIES); do
+          wget "$URL" -O "$OUTPUT.tar.xz"
+          if [ $? -eq 0 ]; then
+            echo "Download successful on attempt $i"
+            break
+          else
+            echo "Download failed on attempt $i. Retrying..."
+            sleep 2
+          fi
+        done
+        if [ $? -ne 0 ]; then
+          echo "Download from $URL failed after $MAX_RETRIES attempts."
+          exit 1
+        fi
+        
+        7z x $OUTPUT.tar.xz -aoa
+        7z x $OUTPUT.tar -aoa
+        mv $TOOLCHAIN $OUTPUT
+        rm $OUTPUT.tar
+        rm $OUTPUT.tar.xz
+        
+    - name: Add GCC Linaro to PATH
+      shell: bash
+      run: |
+        echo "${{ github.workspace }}/gcc-linaro/bin" >> $GITHUB_PATH
+        echo "CC_armv7_unknown_linux_gnueabihf=arm-linux-gnueabihf-gcc" >> $GITHUB_ENV
+        echo "CXX_armv7_unknown_linux_gnueabihf=arm-linux-gnueabihf-g++" >> $GITHUB_ENV
+        echo "AR_armv7_unknown_linux_gnueabihf=arm-linux-gnueabihf-ar" >> $GITHUB_ENV
 
 branding:
   icon: terminal
