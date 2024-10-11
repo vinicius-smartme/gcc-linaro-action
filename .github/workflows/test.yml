@@ -50,5 +50,13 @@ jobs:
           echo '    printf("Hello, ARM world!\\n");' >> hello.c
           echo '    return 0;' >> hello.c
           echo '}' >> hello.c
-          arm-linux-gnueabihf-gcc -o hello hello.c
 
+          # Conditional compilation command based on toolchain
+          if [[ "${{ matrix.toolchain }}" == *"elf"* ]]; then
+            COMPILER_COMMAND="${{ matrix.toolchain }}-gcc hello.c -o hello -specs=aem-ve.specs"
+          else
+            COMPILER_COMMAND="${{ matrix.toolchain }}-gcc hello.c -o hello"
+          fi
+          
+          echo "Compiling with: $COMPILER_COMMAND"
+          $COMPILER_COMMAND || exit 1  # Exit if compilation fails
