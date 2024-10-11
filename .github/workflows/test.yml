@@ -11,19 +11,38 @@ on:
 jobs:
   test:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        version: ['4', '5', '6', '7']
+        toolchain:
+          - aarch64-elf
+          - aarch64-linux-gnu
+          - aarch64_be-elf
+          - aarch64_be-linux-gnu
+          - arm-eabi
+          - arm-linux-gnueabi
+          - arm-linux-gnueabihf
+          - armeb-eabi
+          - armeb-linux-gnueabi
+          - armeb-linux-gnueabihf
+          - armv8l-linux-gnueabihf
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run the custom GCC Linaro Setup Action
+      - name: Install the GCC Linaro toolchain
         uses: ./
-
-      - name: Verify GCC
+        with:
+          version: ${{ matrix.version }}
+          toolchain: ${{ matrix.toolchain }}
+      
+      - name: Verify the GCC cross compiler
         run: |
-          arm-linux-gnueabihf-gcc --version
+          ${{ matrix.toolchain }}-gcc --version
 
       - name: Run a sample build command
+        shell: bash
         run: |
           # Creates a hello.c file
           echo '#include <stdio.h>' > hello.c
